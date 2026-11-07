@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800">
+  <rect width="600" height="800" fill="#1e4d5c"/>
+  <rect x="18" y="18" width="564" height="764" fill="none" stroke="#e2b007" stroke-width="16"/>
+  <text x="48" y="90" fill="#e2b007" font-family="Georgia, serif" font-size="18" letter-spacing="3">Flying BBQ</text>
+  <text x="48" y="210" fill="#f7f1e4" font-family="Georgia, serif" font-size="34">Britain &amp; Ireland at</text><text x="48" y="252" fill="#f7f1e4" font-family="Georgia, serif" font-size="34">the Fire</text>
+  <g transform="translate(430, 620)"><rect x="0" y="18" width="92" height="28" rx="4" fill="#f7f1e4"/><rect x="8" y="24" width="16" height="10" fill="#1e4d5c"/><rect x="30" y="24" width="16" height="10" fill="#1e4d5c"/><circle cx="22" cy="50" r="7" fill="#e2b007"/><circle cx="70" cy="50" r="7" fill="#e2b007"/></g>
+  <text x="48" y="720" fill="#f7f1e4" font-family="Georgia, serif" font-size="16">Field book · Not a ranking</text>
+</svg>
