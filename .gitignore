@@ -4,3 +4,4 @@ node_modules/
 *.log
 __pycache__/
 scripts/ENTRY_SPEC.txt
+data/photo-cache.json

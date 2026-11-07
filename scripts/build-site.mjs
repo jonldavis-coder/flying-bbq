@@ -33,6 +33,43 @@ const BOOKS = [...FLAGSHIP_BOOKS, ...USE_BOOKS];
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const ORIGIN = "https://jonldavis-coder.github.io/flying-bbq";
 const TODAY = "2026-11-07";
+const PHOTOS = fs.existsSync(path.join(root, "data/photos.json"))
+  ? JSON.parse(fs.readFileSync(path.join(root, "data/photos.json"), "utf8"))
+  : {};
+
+function photoFor(slug) {
+  return PHOTOS[slug] || null;
+}
+
+function creditLine(photo) {
+  const kind = photo.kind === "place" ? `${escapeHtml(photo.alt)}. ` : "";
+  return `${kind}Photo: ${escapeHtml(photo.artist)}. <a href="${escapeHtml(photo.licenseUrl)}">${escapeHtml(photo.license)}</a>. <a href="${escapeHtml(photo.sourceUrl)}">Wikimedia Commons</a>.`;
+}
+
+function creditPlain(photo) {
+  const kind = photo.kind === "place" ? `${escapeHtml(photo.alt)}. ` : "";
+  return `${kind}Photo: ${escapeHtml(photo.artist)}. ${escapeHtml(photo.license)}. Wikimedia Commons.`;
+}
+
+function photoImg(photo, { alt, sizes, eager = false, className = "" } = {}) {
+  const loading = eager ? 'loading="eager" fetchpriority="high"' : 'loading="lazy"';
+  const classAttr = className ? ` class="${className}"` : "";
+  return `<img${classAttr} src="${photo.src1280}" srcset="${photo.src640} 640w, ${photo.src1280} 1280w" sizes="${escapeHtml(sizes)}" alt="${escapeHtml(alt || photo.alt)}" width="${photo.width}" height="${photo.height}" ${loading} decoding="async">`;
+}
+
+function leadPhoto(slugs) {
+  for (const slug of slugs || []) {
+    const photo = photoFor(slug);
+    if (photo) return photo;
+  }
+  return null;
+}
+
+function photoFigure(photo, { alt, sizes, eager = false, className = "photo-figure" } = {}) {
+  if (!photo) return "";
+  const flag = photo.kind === "place" ? `<span class="place-flag">Place, not the dish</span>` : "";
+  return `<figure class="${className}">${flag}${photoImg(photo, { alt, sizes, eager })}<figcaption class="photo-credit">${creditLine(photo)}</figcaption></figure>`;
+}
 
 function write(rel, contents) {
   const file = path.join(root, rel);
@@ -222,11 +259,17 @@ function filterForm(countryOptions) {
 
 function card(dish) {
   const countries = countriesOf(dish).join(",");
+  const shot = photoFor(dish.slug);
+  const media = shot
+    ? photoImg(shot, { alt: shot.alt, sizes: "(max-width: 700px) 92vw, 360px" })
+    : `<img src="${dish.photo}" alt="Illustration of ${escapeHtml(dish.name)}" width="800" height="520">`;
+  const credit = shot ? `<p class="photo-credit">${creditLine(shot)}</p>` : "";
   return `<article class="card" data-slug="${escapeHtml(dish.slug)}" data-region="${escapeHtml(dish.region)}" data-type="${escapeHtml(dish.baseType)}" data-heat="${escapeHtml(dish.heat)}" data-uses="${escapeHtml(dish.uses.join(","))}" data-diets="${escapeHtml((dish.diets || []).join(","))}" data-countries="${escapeHtml(countries)}" data-search="${escapeHtml(searchText(dish))}">
         <a class="card-media" href="dishes/${dish.slug}/">
-          <img src="${dish.photo}" alt="Illustration of ${escapeHtml(dish.name)}" width="800" height="520">
-          <span class="badge">${escapeHtml(dish.country)}</span>
+          ${media}
+          <span class="badge">${escapeHtml(shot?.kind === "place" ? "Place" : dish.country)}</span>
         </a>
+        ${credit}
         <div class="card-body">
           <p class="eyebrow">${escapeHtml(dish.region)} · ${escapeHtml(labelOf(BASE_TYPES, dish.baseType))}</p>
           <h2><a href="dishes/${dish.slug}/">${escapeHtml(dish.name)}</a></h2>
@@ -294,7 +337,7 @@ function dishJson(dish) {
     "@type": "Recipe",
     name: dish.name,
     description: `${dish.flavor} ${dish.history}`.slice(0, 480),
-    image: `${ORIGIN}/${dish.photo}`,
+    image: `${ORIGIN}/${photoFor(dish.slug)?.src1280 || dish.photo}`,
     recipeCategory: labelOf(BASE_TYPES, dish.baseType),
     recipeCuisine: dish.culture || dish.country,
     recipeYield: dish.yieldText,
@@ -355,7 +398,9 @@ function dishPage(dish, count, dishes) {
     canonical: `${ORIGIN}/dishes/${dish.slug}/`,
     jsonLd: [dishJson(dish), breadcrumb(dish)],
     extraHead: og(dish.name, description, `${ORIGIN}/dishes/${dish.slug}/`),
-    main: `<article id="dish-root" class="wrap dish-layout" data-slug="${escapeHtml(dish.slug)}">
+    main: `<article id="dish-root" class="wrap" data-slug="${escapeHtml(dish.slug)}">
+      ${photoFigure(photoFor(dish.slug), { sizes: "(max-width: 800px) 100vw, 1120px", eager: true, className: "stop-hero" })}
+      <div class="dish-layout">
       <div>
         <p class="print-only print-brand">Flying BBQ of the World</p>
         <p class="arriving">Arriving in ${escapeHtml(dish.locale || dish.country)}.</p>
@@ -413,10 +458,6 @@ function dishPage(dish, count, dishes) {
         <section id="comments" class="no-print section-rule" aria-label="Comments"></section>
       </div>
       <aside class="rail">
-        <figure class="dish-photo">
-          <img src="${dish.photo}" alt="Original illustration of ${escapeHtml(dish.name)} over a fire" width="800" height="520">
-          <figcaption>${escapeHtml(dish.photoCredit)}</figcaption>
-        </figure>
         <div class="passport-stamp no-print" aria-hidden="true"><span>Arrived</span><strong>${escapeHtml(dish.country)}</strong><span>${escapeHtml(labelOf(BASE_TYPES, dish.baseType))}</span></div>
         <div class="origin-card">
           <h2>Origin</h2>
@@ -433,6 +474,7 @@ function dishPage(dish, count, dishes) {
           <p><a href="map/?country=${escapeHtml(dish.countryCode)}">See this stop on the route map</a></p>
         </div>
       </aside>
+      </div>
     </article>`
   });
 }
@@ -440,11 +482,16 @@ function dishPage(dish, count, dishes) {
 function feature(region, copy, dishes) {
   const examples = dishes.filter((dish) => dish.region === region).slice(0, 3).map((dish) => dish.name).join(" · ");
   const count = dishes.filter((dish) => dish.region === region).length;
+  const shot = leadPhoto(dishes.filter((dish) => dish.region === region).map((dish) => dish.slug));
+  const img = shot ? photoImg(shot, { alt: shot.alt, sizes: "(max-width: 700px) 100vw, 50vw", className: "lead-photo" }) : "";
+  const credit = shot ? `<p class="photo-credit">${creditPlain(shot)}</p>` : "";
   return `<a class="feature" href="explore/region/${slugify(region)}/">
+        ${img}
         <span class="count">${count} dishes</span>
         <p class="eyebrow">${escapeHtml(region)}</p>
         <h2>${escapeHtml(copy.title)}</h2>
         <p>${escapeHtml(copy.text)} ${escapeHtml(examples)}.</p>
+        ${credit}
       </a>`;
 }
 
@@ -462,6 +509,10 @@ function explorePage({ title, description, current, crumbs, dishes, count }) {
       <p class="eyebrow">Explore</p>
       <h1>${escapeHtml(title)}</h1>
       <p class="lede">${escapeHtml(description)}</p>
+      ${(() => {
+        const hero = dishes.map((item) => photoFor(item.slug)).find(Boolean);
+        return hero ? photoFigure(hero, { sizes: "(max-width: 800px) 100vw, 1120px", alt: hero.alt, className: "photo-figure" }) : "";
+      })()}
       <p class="results-count">${dishes.length} ${dishes.length === 1 ? "dish" : "dishes"}</p>
       <div class="grid">${dishes.map(card).join("\n") || "<p>None yet.</p>"}</div>
     </div>`
@@ -524,12 +575,25 @@ const features = [
   ["East Asia", { title: "Charcoal, forks, and table grills", text: "Char siu, lamb skewers, galbi, and yakitori." }],
   ["South America", { title: "Asado and churrasco", text: "Parrillas, spits, and the Saturday fire from the pampas to the Andes." }]
 ].map(([region, copy]) => feature(region, copy, dishes)).join("\n");
-const journeyCards = JOURNEYS.slice(0, 4).map((journey) => `<a class="feature journey-card" href="journeys/${journey.slug}/">
+const heroShot = leadPhoto(["argentine-asado", "central-texas-brisket", "jamaican-jerk-chicken", "tandoori-chicken", "brazilian-picanha"])
+  || Object.values(PHOTOS)[0]
+  || null;
+const heroMedia = heroShot
+  ? photoFigure(heroShot, { sizes: "(max-width: 800px) 100vw, 520px", eager: true, className: "hero-photo" })
+  : `<img src="assets/images/hero.svg" alt="Original illustration of a hot-air balloon, a plane, a train, and a boat circling a small cook fire" width="800" height="520">`;
+const journeyCards = JOURNEYS.slice(0, 4).map((journey) => {
+  const shot = leadPhoto(journey.stops);
+  const img = shot ? photoImg(shot, { alt: shot.alt, sizes: "(max-width: 700px) 100vw, 40vw", className: "lead-photo" }) : "";
+  const credit = shot ? `<p class="photo-credit">${creditPlain(shot)}</p>` : "";
+  return `<a class="feature journey-card" href="journeys/${journey.slug}/">
+        ${img}
         <span class="count">${escapeHtml(VEHICLES[journey.vehicle] || journey.vehicle)}</span>
         <p class="eyebrow">Journey</p>
         <h2>${escapeHtml(journey.title)}</h2>
         <p>${escapeHtml(journey.dek)}</p>
-      </a>`).join("\n");
+        ${credit}
+      </a>`;
+}).join("\n");
 
 write("index.html", page({
   title: "Flying BBQ of the World",
@@ -560,7 +624,7 @@ write("index.html", page({
           <p class="button-row"><a class="button" href="map/">Open the route map</a> <a class="button button-quiet" href="journeys/">Curated journeys</a> <a class="button button-quiet" href="learn/who-settled-the-flavor/">Who settled the flavor</a></p>
         </div>
         <div class="hero-media">
-          <img src="assets/images/hero.svg" alt="Original illustration of a hot-air balloon, a plane, a train, and a boat circling a small cook fire" width="800" height="520">
+          ${heroMedia}
         </div>
       </section>
       ${adSlot("home_after_hero")}
@@ -600,11 +664,16 @@ write("assets/js/routes.js", `// Generated by scripts/build-site.mjs. Do not edi
 
 const journeyIndex = JOURNEYS.map((journey) => {
   const stops = journey.stops.map((slug) => dishes.find((dish) => dish.slug === slug)).filter(Boolean);
+  const shot = leadPhoto(journey.stops);
+  const img = shot ? photoImg(shot, { alt: shot.alt, sizes: "(max-width: 700px) 100vw, 40vw", className: "lead-photo" }) : "";
+  const credit = shot ? `<p class="photo-credit">${creditPlain(shot)}</p>` : "";
   return `<article class="journey-card feature">
+      ${img}
       <span class="count">${escapeHtml(VEHICLES[journey.vehicle] || journey.vehicle)}</span>
       <p class="eyebrow">${stops.length} stops</p>
       <h2><a href="journeys/${journey.slug}/">${escapeHtml(journey.title)}</a></h2>
       <p>${escapeHtml(journey.dek)}</p>
+      ${credit}
     </article>`;
 }).join("\n");
 
@@ -670,6 +739,7 @@ for (const journey of JOURNEYS) {
         <p class="eyebrow">${escapeHtml(VEHICLES[journey.vehicle] || journey.vehicle)}</p>
         <h1>${escapeHtml(journey.title)}</h1>
         <p class="dek">${escapeHtml(journey.dek)}</p>
+        ${photoFigure(leadPhoto(journey.stops), { sizes: "(max-width: 800px) 100vw, 1120px", className: "photo-figure" })}
         ${journey.intro.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("")}
         <figure class="route-map">
           <img src="assets/images/journeys/${journey.slug}-route.svg" alt="Schematic route for ${escapeHtml(journey.title)}" width="800" height="360">
@@ -942,6 +1012,11 @@ for (const book of builtBooks) {
             ${adSlot("book_after_intro")}
           </header>
         </div>
+        ${(() => {
+          const shots = book.members.map((dish) => ({ dish, photo: photoFor(dish.slug) })).filter((item) => item.photo).slice(0, 4);
+          if (!shots.length) return "";
+          return `<section class="book-photos"><h2>Photographs from this route</h2><div class="grid">${shots.map(({ dish, photo }) => `<figure class="photo-figure">${photoImg(photo, { alt: photo.alt, sizes: "(max-width: 700px) 100vw, 260px" })}<figcaption class="photo-credit"><a href="dishes/${dish.slug}/">${escapeHtml(dish.name)}</a>. ${creditLine(photo)}</figcaption></figure>`).join("")}</div></section>`;
+        })()}
         <h2>Route</h2>
         <figure class="route-map">
           <img src="${routePath}" alt="Schematic route for ${escapeHtml(book.title)}" width="800" height="360">
@@ -1054,7 +1129,7 @@ prosePage({
   paragraphs: [
     `Flying BBQ of the World is a travel journal of barbecue and live-fire cooking. This issue has ${count} stops. The public goal is 1,000. The count on the site is the number of edited entries.`,
     "Each stop reads like an arrival. It has a workable home recipe with a safe cooking temperature, an origin, a history, a cultural note, a section called Why it tastes this way, an authentic touch, and a next stop. If a popular origin story is disputed, the page says so or leaves it out.",
-    "Illustrations are drawn for this site. They are not photographs of people, and they are not borrowed marks. The route map uses Natural Earth country shapes and Leaflet, with no paid map key. Curated journeys draw a vehicle on each leg.",
+    "Photographs are downloaded copies of freely licensed files from Wikimedia Commons (CC0, CC BY, CC BY-SA, or public domain). Each one has a credit and a license link. A photograph is used as the dish only when it shows that dish. Otherwise it is labeled as a photograph of the place. Original illustrations are still drawn for book covers and for any stop without a photograph. The route map uses Natural Earth country shapes and Leaflet, with no paid map key.",
     "The community tools follow the same pattern as the related project <a href=\"https://jonldavis-coder.github.io/flying-sauces/\">Flying Sauces</a>: comments, hearts, star ratings, and reader submissions. Additions, called twists, are a reader’s change to a published recipe. Until Supabase is connected, a banner says that those notes stay in the browser.",
     "<a href=\"learn/who-settled-the-flavor/\">Who settled the flavor</a> is the United States essay on Native foodways, Spanish and Caribbean barbacoa, enslaved Africans, and later immigrants.",
     "The site is published by jonldavis-coder and hosted on GitHub Pages from the main branch."
@@ -1242,6 +1317,30 @@ write("dish.html", page({
   robots: "noindex",
   dishCount: count,
   main: `<div class="wrap"><article id="dish-root"></article><noscript><p>This page needs JavaScript to show a dish saved in the browser.</p></noscript></div>`
+}));
+
+const creditEntries = Object.entries(PHOTOS);
+const dishBySlug = new Map(dishes.map((dish) => [dish.slug, dish]));
+write("credits/index.html", page({
+  title: "Photo credits · Flying BBQ",
+  description: "Credits and licenses for every photograph in Flying BBQ of the World.",
+  current: "about",
+  pageName: "static",
+  dishCount: count,
+  canonical: `${ORIGIN}/credits/`,
+  main: `<article class="wrap prose">
+      <p class="eyebrow">Photographs</p>
+      <h1>Photo credits</h1>
+      <p class="lede">Every photograph is a local copy of a Wikimedia Commons file whose license is CC0, CC BY, CC BY-SA, or public domain. Nothing is hotlinked. A line that says “place, not the dish” means the picture shows the origin, not the food.</p>
+      <p>${creditEntries.length} photographs. ${creditEntries.filter(([, photo]) => photo.kind === "dish").length} show the dish. ${creditEntries.filter(([, photo]) => photo.kind === "place").length} show the place.</p>
+      <div class="credits-list">
+        ${creditEntries.map(([slug, photo]) => {
+          const dish = dishBySlug.get(slug);
+          const title = dish ? `<a href="dishes/${slug}/">${escapeHtml(dish.name)}</a>` : escapeHtml(slug);
+          return `<article>${photoImg(photo, { alt: photo.alt, sizes: "160px" })}<div><h2>${title}</h2><p class="photo-credit">${creditLine(photo)}</p><p class="meta">${photo.kind === "place" ? "Place" : "Dish"} · ${escapeHtml(photo.file)}</p></div></article>`;
+        }).join("") || "<p>No photographs have been added yet.</p>"}
+      </div>
+    </article>`
 }));
 
 const urls = [];

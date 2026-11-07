@@ -224,6 +224,39 @@ input, select, textarea {
 .card h2 a { color: inherit; text-decoration: none; }
 .card h2 a:hover { text-decoration: underline; }
 .card-media { position: relative; display: block; background: var(--ocean); }
+.card-media img, .stop-hero img, .photo-figure img, .feature .lead-photo {
+  display: block;
+  width: 100%;
+  object-fit: cover;
+}
+.card-media img { aspect-ratio: 3 / 2; }
+.photo-credit { color: var(--muted); font-size: 0.82rem; line-height: 1.35; margin: 0.35rem 0 0.6rem; }
+.card .photo-credit { padding: 0 0.9rem; margin: 0.4rem 0 0; }
+.feature .photo-credit, .feature .photo-credit a { color: #f4efe4; }
+.feature .lead-photo {
+  width: 100%;
+  margin: 0 0 0.7rem;
+  height: 11rem;
+  object-fit: cover;
+}
+.stop-hero { margin: 0.4rem 0 1rem; position: relative; }
+.stop-hero img { height: 28rem; max-height: 34rem; aspect-ratio: auto; border: 8px solid var(--gold); }
+.place-flag {
+  position: absolute;
+  left: 0.8rem;
+  top: 0.8rem;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  padding: 0.2rem 0.45rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.credits-list { display: grid; gap: 1rem; }
+.credits-list article { display: grid; grid-template-columns: 160px 1fr; gap: 0.8rem; align-items: center; }
+.credits-list img { width: 160px; height: 106px; object-fit: cover; }
 .card-swatch {
   display: grid;
   min-height: 140px;
@@ -391,6 +424,7 @@ input, select, textarea {
   body[data-print="ingredients"] .story-block,
   body[data-print="ingredients"] .fun-facts,
   body[data-print="ingredients"] .dish-photo,
+  body[data-print="ingredients"] .stop-hero,
   body[data-print="ingredients"] .pairings,
   body[data-print="ingredients"] .variations,
   body[data-print="ingredients"] .dek { display: none !important; }
@@ -412,6 +446,7 @@ body.is-print-preview[data-print="ingredients"] .steps-heading,
 body.is-print-preview[data-print="ingredients"] .story-block,
 body.is-print-preview[data-print="ingredients"] .fun-facts,
 body.is-print-preview[data-print="ingredients"] .dish-photo,
+body.is-print-preview[data-print="ingredients"] .stop-hero,
 body.is-print-preview[data-print="ingredients"] .pairings,
 body.is-print-preview[data-print="ingredients"] .variations,
 body.is-print-preview[data-print="ingredients"] .dek { display: none !important; }
@@ -465,3 +500,10 @@ body.is-print-preview[data-print="ingredients"] .ingredients li::before { conten
 }
 .vehicle-icon { background: transparent; border: 0; }
 .journey-list section { border-top: 1px solid var(--line); padding-top: 0.6rem; }
+@media (max-width: 640px) {
+  .credits-list article { grid-template-columns: 1fr; }
+  .credits-list img { width: 100%; height: auto; aspect-ratio: 3 / 2; }
+}
+@media print {
+  .stop-hero img, .photo-figure img { border-width: 0; max-height: none; }
+}
