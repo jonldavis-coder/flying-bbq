@@ -1,6 +1,6 @@
 # Flying BBQ of the World
 
-A travel journal of barbecue and live-fire cooking. This issue has **302 stops**. The route is growing to **1,000**. Every count on the site is the number of edited entries.
+A guide to barbecue and live-fire cooking. This issue has **302 stops**. The route is growing to **1,000**. Every count on the site is the number of edited entries.
 
 Each stop has a workable recipe with a safe cooking temperature, an origin, a history, a cultural note, a **Why it tastes this way** section, and an **Authentic touch**. Pages open with **Arriving in…** and link a **Next stop**. Histories leave out claims that are not solid.
 
